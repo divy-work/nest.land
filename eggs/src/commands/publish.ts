@@ -86,7 +86,7 @@ export const publish = new Command()
         egg.version = incOne;
       }
 
-      let uploadResponse = await fetch("https://x.nest.land/api/publish", {
+      let uploadResponse = await fetch(config.publishURL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -106,7 +106,7 @@ export const publish = new Command()
 
       if (!uploadResponse.ok) throw new Error(red("Something broke..."));
       let uploadResponseBody: { token: string, name: string, version: string, owner: string } = uploadResponse.ok && await uploadResponse.json();
-      let pieceResponse = await fetch("https://x.nest.land/api/piece", {
+      let pieceResponse = await fetch(config.pieceURL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
