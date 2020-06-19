@@ -18,6 +18,8 @@ import {
   getAPIKey,
 } from "../utilities/key-check.ts";
 
+import config from "./config.ts";
+
 interface IEggConfig {
   name: string;
   description?: string;
