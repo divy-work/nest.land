@@ -38,6 +38,8 @@
                     <button
                       class="button is-primary is-light"
                       @click="selectedVersion = packageInfo.latestStableVersion; refreshContent(); refreshReadme()"
+                      :title="packageInfo.latestStableVersion === null ? 'No stable version available yet': null"
+                      :disabled="packageInfo.latestStableVersion === null"
                     >Stable</button>
                     <button
                       class="button is-warning is-light"
@@ -49,10 +51,10 @@
                   <div class="select is-light has-light-arrow is-fullwidth">
                     <select v-model="selectedVersion" @change="refreshContent(); refreshReadme()">
                       <option
-                        v-for="version in packageInfo.packageUploadNames"
-                        :key="version"
-                        :value="version"
-                      >{{ version }}</option>
+                        v-for="(version, id) in packageVersions"
+                        :key="id"
+                        :value="$route.params.id + '@' + version"
+                      >{{ $route.params.id + '@' + version }}</option>
                     </select>
                   </div>
                 </div>
@@ -65,6 +67,7 @@
                   <font-awesome-icon class="icon-margin-right" :icon="['fas', 'box-open']" />Package info
                 </p>
                 <div class="panel-block">Author: {{ packageInfo.owner }}</div>
+                <a v-if="packageInfo.repository !== ''" class="panel-block" :href="packageInfo.repository">Repository</a>
                 <div class="panel-block">Published on: {{ packageInfo.createdAt | formatDate }}</div>
               </nav>
             </div>
@@ -80,6 +83,7 @@ import NestNav from "../Nav";
 import { HTTP } from "../../http-common";
 import moment from "moment";
 import VueMarkdown from "vue-markdown";
+import * as semverSort from "semver/functions/sort";
 
 export default {
   components: {
@@ -90,6 +94,7 @@ export default {
     return {
       packageInfo: Object,
       selectedVersion: "",
+      packageVersions: [],
       packageReadme: "Loading README...",
       loading: true,
     };
@@ -103,6 +108,8 @@ export default {
   async created() {
     await this.refreshContent();
     this.selectedVersion = this.packageInfo.latestStableVersion;
+    if(this.selectedVersion === null)
+      this.selectedVersion = this.packageInfo.latestVersion;
     await this.refreshReadme();
     this.loading = false;
   },
@@ -116,6 +123,7 @@ export default {
           },
         });
         this.packageInfo = packageDataResponse.data.body;
+        this.packageVersions = this.sortPackages(this.packageInfo.packageUploadNames);
       } catch (err) {
         this.$emit("new-error", err);
       }
@@ -134,6 +142,12 @@ export default {
         this.$emit("new-error", err);
       }
     },
+    sortPackages(packageList) {
+      for (let i = 0; i < packageList.length; i++) {
+        packageList[i] = packageList[i].split("@")[1];
+      }
+      return semverSort(packageList).reverse();
+    }
   },
 };
 </script>
