@@ -3,12 +3,13 @@ import { link } from "./commands/link.ts";
 import { init } from "./commands/init.ts";
 import { publish } from "./commands/publish.ts";
 import { update } from "./commands/update.ts";
+import config from "./config.ts";
 
 export async function commandHandler() {
   await new Command()
-    .name("eggs")
-    .version("0.1.0")
-    .description("nest.land - A package registry for Deno, on the permaweb")
+    .name(config.name)
+    .version(config.version)
+    .description(config.desc)
     .command("link", link)
     .option("-k, --key <value:string>", "Your API Key")
     .command("init", init)
