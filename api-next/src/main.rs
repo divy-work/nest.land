@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use actix_cors::Cors;
 use actix_multipart::Multipart;
-use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer};
+use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, error};
 use futures::{StreamExt, TryStreamExt};
 use juniper::http::graphiql::graphiql_source;
 use juniper::http::GraphQLRequest;
@@ -16,6 +16,7 @@ use std::io::Write;
 use std::path::Path;
 use tokio_postgres::Client;
 use uuid::Uuid;
+use failure::Fail;
 
 mod context;
 mod db;
@@ -51,15 +52,15 @@ async fn graphql(
         .body(user))
 }
 
-// TODO: use this struct
-pub struct OngoingUpload {
-    packageName: String,
-    done: bool,
+#[derive(serde::Deserialize, Debug)]
+pub struct Config {
+    pub apiKey: String,
+    pub packageName: String,
 }
 
 async fn upload_package(mut payload: Multipart) -> Result<HttpResponse, Error> {
     // iterate over multipart stream
-    let mut formValues = Vec::new();
+    let mut fields = String::new();
     while let Ok(Some(mut field)) = payload.try_next().await {
         let content_type = field.content_disposition().unwrap();
         let mime_type = field.content_type();
@@ -76,8 +77,7 @@ async fn upload_package(mut payload: Multipart) -> Result<HttpResponse, Error> {
             let data = chunk.unwrap();
             match filename {
                 None => {
-                    println!("{:?}", data);
-                    formValues.extend_from_slice(&data);
+                    fields = std::str::from_utf8(&data)?.to_string();
                 }
                 Some(n) => {
                     // filesystem operations are blocking, we have to use threadpool
@@ -86,7 +86,7 @@ async fn upload_package(mut payload: Multipart) -> Result<HttpResponse, Error> {
             }
         }
     }
-    let apiKey = formValues[0];
+    let cnf: Config = serde_json::from_str(&fields)?;
     Ok(HttpResponse::Ok().into())
 }
 
